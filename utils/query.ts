@@ -1,9 +1,9 @@
 import proxy from "./proxy";
 import User from "../models/user";
-import Listing from "../models/listing";
+import Transaction from "../models/transaction";
 const logger = require("./logger");
 const profileQuery = async (id: string) => {
-  await proxy.initiateProfileQuery(100, id);
+  await proxy.initiateProfileQuery(250, id);
 
   var cloutMap = {};
   await User.find({}, function (err, users) {
@@ -25,11 +25,19 @@ const profileQuery = async (id: string) => {
             if (
               Object.keys(cloutMap).includes(output[0].PublicKeyBase58Check)
             ) {
-              const user = await User.findOne({
+              const tx_ = await Transaction.findOne({
                 bitcloutpubkey: output[0].PublicKeyBase58Check,
               }).exec();
-              if (user) {
-                user.bitcloutbalance += output[0].AmountNanos / 1e9;
+              if (tx_ && output[0].AmountNanos / 1e9 >= tx_.bitcloutvalue) {
+                const user = await User.findOne({
+                  username: tx_.username.toString(),
+                }).exec();
+                tx_.status = "payment_completed";
+                if (user) {
+                  user.bitswapbalance += output[0].AmountNanos / 1e9;
+                  user.save();
+                }
+                tx_.save();
               }
             }
             // console.log(output)

@@ -10,13 +10,14 @@ export interface UserDoc extends Document {
   bitcloutpubkey: string;
   ethereumaddress: string;
   password: string;
+  passwordverification: string;
   created: Date;
   listings: [Schema.Types.ObjectId];
   admin: boolean;
   verified: string;
   ratings: [{ rating: number; rater: Schema.Types.ObjectId }];
   completedtransactions: number;
-  bitcloutbalance:number;
+  bitswapbalance: number;
   generateHash: (password: string) => boolean;
   validPassword: (password: string) => boolean;
 }
@@ -30,6 +31,7 @@ const userSchema = new Schema<UserDoc>({
   bitcloutpubkey: { type: String, unique: true },
   ethereumaddress: { type: String, unique: true },
   password: { type: String, required: true },
+  passwordverification: { type: String },
   incomplete: { type: Boolean, required: true, default: true },
   created: {
     type: Date,
@@ -46,8 +48,9 @@ const userSchema = new Schema<UserDoc>({
       },
     },
   ],
-  completedtransactions: { type: Number, default: 0 },
-  bitcloutbalance: {type:Number, default:0}
+  completedorders: { type: Number, default: 0 },
+  bitswapbalance: { type: Number, default: 0 },
+  transactions: [{ type: Schema.Types.ObjectId, ref: "Transaction" }],
 });
 
 // userSchema.set("toJSON", {
