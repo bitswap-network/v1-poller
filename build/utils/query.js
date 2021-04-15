@@ -13,22 +13,40 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const proxy_1 = __importDefault(require("./proxy"));
+const user_1 = __importDefault(require("../models/user"));
 const logger = require("./logger");
 const profileQuery = (id) => __awaiter(void 0, void 0, void 0, function* () {
     yield proxy_1.default.initiateProfileQuery(100, id);
-    yield proxy_1.default.crawlTransactionInfo()
-        .then((response) => {
-        logger.info(response);
-        response["Transactions"].forEach(transaction => {
-            if (transaction["TransactionType"] == "BASIC_TRANSFER") {
-                const output = transaction.Outputs;
-                console.log(output);
-            }
+    var cloutMap = {};
+    yield user_1.default.find({}, function (err, users) {
+        users.forEach(function (user) {
+            cloutMap[user.bitcloutpubkey] = user._id;
         });
-    })
+    });
+    yield proxy_1.default
+        .crawlTransactionInfo()
+        .then((response) => __awaiter(void 0, void 0, void 0, function* () {
+        logger.info(response);
+        if (response["Transactions"]) {
+            for (let i = 0; i < response["Transactions"].length; i++) {
+                if (response["Transactions"][i]["TransactionType"] == "BASIC_TRANSFER") {
+                    const output = response["Transactions"][i].Outputs;
+                    if (Object.keys(cloutMap).includes(output[0].PublicKeyBase58Check)) {
+                        const user = yield user_1.default.findOne({
+                            bitcloutpubkey: output[0].PublicKeyBase58Check,
+                        }).exec();
+                        if (user) {
+                            user.bitcloutbalance += output[0].AmountNanos / 1e9;
+                        }
+                    }
+                    // console.log(output)
+                }
+            }
+        }
+    }))
         .catch((error) => {
         logger.error(error);
     });
 });
 exports.default = profileQuery;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicXVlcnkuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi91dGlscy9xdWVyeS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7OztBQUFBLG9EQUE0QjtBQUM1QixNQUFNLE1BQU0sR0FBRyxPQUFPLENBQUMsVUFBVSxDQUFDLENBQUE7QUFFbEMsTUFBTSxZQUFZLEdBQUcsQ0FBTyxFQUFTLEVBQUUsRUFBRTtJQUVyQyxNQUFNLGVBQUssQ0FBQyxvQkFBb0IsQ0FBQyxHQUFHLEVBQUMsRUFBRSxDQUFDLENBQUM7SUFDekMsTUFBTSxlQUFLLENBQUMsb0JBQW9CLEVBQUU7U0FDakMsSUFBSSxDQUFDLENBQUMsUUFBUSxFQUFDLEVBQUU7UUFDZCxNQUFNLENBQUMsSUFBSSxDQUFDLFFBQVEsQ0FBQyxDQUFDO1FBQ3RCLFFBQVEsQ0FBQyxjQUFjLENBQUMsQ0FBQyxPQUFPLENBQUMsV0FBVyxDQUFDLEVBQUU7WUFDM0MsSUFBRyxXQUFXLENBQUMsaUJBQWlCLENBQUMsSUFBRSxnQkFBZ0IsRUFDbkQ7Z0JBQ0ksTUFBTSxNQUFNLEdBQUcsV0FBVyxDQUFDLE9BQU8sQ0FBQztnQkFDbkMsT0FBTyxDQUFDLEdBQUcsQ0FBQyxNQUFNLENBQUMsQ0FBQTthQUN0QjtRQUNMLENBQUMsQ0FBQyxDQUFDO0lBQ1AsQ0FBQyxDQUFDO1NBQ0QsS0FBSyxDQUFDLENBQUMsS0FBSyxFQUFDLEVBQUU7UUFDWixNQUFNLENBQUMsS0FBSyxDQUFDLEtBQUssQ0FBQyxDQUFBO0lBQ3ZCLENBQUMsQ0FBQyxDQUFDO0FBRVAsQ0FBQyxDQUFBLENBQUE7QUFDRCxrQkFBZSxZQUFZLENBQUMifQ==
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicXVlcnkuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi91dGlscy9xdWVyeS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7OztBQUFBLG9EQUE0QjtBQUM1QiwwREFBa0M7QUFFbEMsTUFBTSxNQUFNLEdBQUcsT0FBTyxDQUFDLFVBQVUsQ0FBQyxDQUFDO0FBQ25DLE1BQU0sWUFBWSxHQUFHLENBQU8sRUFBVSxFQUFFLEVBQUU7SUFDeEMsTUFBTSxlQUFLLENBQUMsb0JBQW9CLENBQUMsR0FBRyxFQUFFLEVBQUUsQ0FBQyxDQUFDO0lBRTFDLElBQUksUUFBUSxHQUFHLEVBQUUsQ0FBQztJQUNsQixNQUFNLGNBQUksQ0FBQyxJQUFJLENBQUMsRUFBRSxFQUFFLFVBQVUsR0FBRyxFQUFFLEtBQUs7UUFDdEMsS0FBSyxDQUFDLE9BQU8sQ0FBQyxVQUFVLElBQUk7WUFDMUIsUUFBUSxDQUFDLElBQUksQ0FBQyxjQUFjLENBQUMsR0FBRyxJQUFJLENBQUMsR0FBRyxDQUFDO1FBQzNDLENBQUMsQ0FBQyxDQUFDO0lBQ0wsQ0FBQyxDQUFDLENBQUM7SUFFSCxNQUFNLGVBQUs7U0FDUixvQkFBb0IsRUFBRTtTQUN0QixJQUFJLENBQUMsQ0FBTyxRQUFRLEVBQUUsRUFBRTtRQUN2QixNQUFNLENBQUMsSUFBSSxDQUFDLFFBQVEsQ0FBQyxDQUFDO1FBQ3RCLElBQUksUUFBUSxDQUFDLGNBQWMsQ0FBQyxFQUFFO1lBQzVCLEtBQUssSUFBSSxDQUFDLEdBQUcsQ0FBQyxFQUFFLENBQUMsR0FBRyxRQUFRLENBQUMsY0FBYyxDQUFDLENBQUMsTUFBTSxFQUFFLENBQUMsRUFBRSxFQUFFO2dCQUN4RCxJQUNFLFFBQVEsQ0FBQyxjQUFjLENBQUMsQ0FBQyxDQUFDLENBQUMsQ0FBQyxpQkFBaUIsQ0FBQyxJQUFJLGdCQUFnQixFQUNsRTtvQkFDQSxNQUFNLE1BQU0sR0FBRyxRQUFRLENBQUMsY0FBYyxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUMsT0FBTyxDQUFDO29CQUNuRCxJQUNFLE1BQU0sQ0FBQyxJQUFJLENBQUMsUUFBUSxDQUFDLENBQUMsUUFBUSxDQUFDLE1BQU0sQ0FBQyxDQUFDLENBQUMsQ0FBQyxvQkFBb0IsQ0FBQyxFQUM5RDt3QkFDQSxNQUFNLElBQUksR0FBRyxNQUFNLGNBQUksQ0FBQyxPQUFPLENBQUM7NEJBQzlCLGNBQWMsRUFBRSxNQUFNLENBQUMsQ0FBQyxDQUFDLENBQUMsb0JBQW9CO3lCQUMvQyxDQUFDLENBQUMsSUFBSSxFQUFFLENBQUM7d0JBQ1YsSUFBSSxJQUFJLEVBQUU7NEJBQ1IsSUFBSSxDQUFDLGVBQWUsSUFBSSxNQUFNLENBQUMsQ0FBQyxDQUFDLENBQUMsV0FBVyxHQUFHLEdBQUcsQ0FBQzt5QkFDckQ7cUJBQ0Y7b0JBQ0Qsc0JBQXNCO2lCQUN2QjthQUNGO1NBQ0Y7SUFDSCxDQUFDLENBQUEsQ0FBQztTQUNELEtBQUssQ0FBQyxDQUFDLEtBQUssRUFBRSxFQUFFO1FBQ2YsTUFBTSxDQUFDLEtBQUssQ0FBQyxLQUFLLENBQUMsQ0FBQztJQUN0QixDQUFDLENBQUMsQ0FBQztBQUNQLENBQUMsQ0FBQSxDQUFDO0FBQ0Ysa0JBQWUsWUFBWSxDQUFDIn0=
