@@ -6,7 +6,7 @@ const cron = require("node-cron");
 import profileQuery from "./utils/query";
 cron.schedule("*/10 * * * *", () => {
   console.log("---------------------");
-  console.log("Running Cron Job");
+  console.log("Running Poller Job");
   profileQuery("BC1YLjQtaLyForGFpdzmvzCCx1zbSCm58785cABn5zS8KVMeS4Z4aNK");
 });
 
