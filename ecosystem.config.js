@@ -4,6 +4,8 @@ module.exports = {
       name: "poller",
       script: "./build/index.js",
       max_memory_restart: "400M",
+      instances: 1,
+      autorestart: true,
       env: {
         NODE_ENV: "development",
       },
