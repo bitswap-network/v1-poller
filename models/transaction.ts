@@ -14,12 +14,15 @@ export interface transactionDoc extends Document {
 const transactionSchema = new Schema<transactionDoc>({
   username: { type: String, required: true },
   bitcloutpubkey: { type: String },
-  transactiontype: { type: String, required: true },
-  status: { type: String, required: true },
+  transactiontype: {
+    type: String,
+    required: true,
+    enum: ["withdraw", "deposit"],
+  },
+  status: { type: String, required: true, enum: ["completed", "pending"] },
   bitcloutnanos: { type: Number, required: true },
-  created: { type: Date, default: Date.now() },
+  created: { type: Date, default: Date.now },
   completed: { type: Date },
-  listing: { type: Schema.Types.ObjectId, ref: "Transaction" },
   tx_id: { type: String },
 });
 

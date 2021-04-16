@@ -3,7 +3,7 @@ import User from "../models/user";
 import Transaction from "../models/transaction";
 const logger = require("./logger");
 const profileQuery = async (id: string) => {
-  await proxy.initiateProfileQuery(250, id);
+  await proxy.initiateProfileQuery(300, id);
 
   var cloutMap = {};
   await User.find({}, function (err, users) {
@@ -36,7 +36,7 @@ const profileQuery = async (id: string) => {
                 tx_.tx_id =
                   response["Transactions"][i]["TransactionIDBase58Check"];
                 if (user) {
-                  user.bitswapbalance += output[0].AmountNanos / 1e9;
+                  user.bitswapbalance += output[0].AmountNanos;
                   user.save();
                 }
                 tx_.save();
