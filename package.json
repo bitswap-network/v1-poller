@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node ./build/index.js",
+    "start": "tsc && pm2-runtime start ecosystem.config.js --env production",
     "tslint": "tslint --project tsconfig.json",
     "prettier:base": "prettier --parser typescript --single-quote",
     "prettier:check": "npm run prettier:base -- --list-different \"./**/*.{ts,tsx}\"",
@@ -28,6 +28,7 @@
     "mongoose": "^5.12.3",
     "node-cron": "^3.0.0",
     "npm": "^7.9.0",
+    "pm2": "^4.5.6",
     "puppeteer": "^8.0.0",
     "puppeteer-extra": "^3.1.18",
     "puppeteer-extra-plugin-stealth": "^2.7.6",
