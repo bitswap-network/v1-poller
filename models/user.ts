@@ -1,5 +1,5 @@
 import { model, Schema, Document } from "mongoose";
-const bcrypt = require("bcrypt-nodejs");
+const bcrypt = require("bcrypt");
 
 export interface UserDoc extends Document {
   name: string;
@@ -18,9 +18,11 @@ export interface UserDoc extends Document {
   verified: string;
   ratings: [{ rating: number; rater: Schema.Types.ObjectId }];
   completedtransactions: number;
-  generateHash: (password: string) => boolean;
+  generateHash: (password: string) => string;
   validPassword: (password: string) => boolean;
   bitswapbalance: number;
+  transactions: [Schema.Types.ObjectId];
+  buystate: boolean;
 }
 
 const userSchema = new Schema<UserDoc>({
@@ -57,18 +59,11 @@ const userSchema = new Schema<UserDoc>({
   completedorders: { type: Number, default: 0 },
   bitswapbalance: { type: Number, default: 0 },
   transactions: [{ type: Schema.Types.ObjectId, ref: "Transaction" }],
+  buystate: { type: Boolean, default: false },
 });
 
-// userSchema.set("toJSON", {
-//   transform: (document, returnedObject) => {
-//     returnedObject.id = returnedObject._id.toString();
-//     delete returnedObject._id;
-//     delete returnedObject.__v;
-//   },
-// });
-
 userSchema.methods.generateHash = function (password: String) {
-  return bcrypt.hashSync(password, bcrypt.genSaltSync(8), null);
+  return bcrypt.hashSync(password, 8);
 };
 
 userSchema.methods.validPassword = function (password: String) {
