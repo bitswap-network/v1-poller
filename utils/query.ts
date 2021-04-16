@@ -5,7 +5,7 @@ const logger = require("./logger");
 const profileQuery = async (id: string) => {
   await proxy.initiateProfileQuery(300, id);
 
-  var cloutMap = {};
+  let cloutMap = {};
   await User.find({}, function (err, users) {
     users.forEach(function (user) {
       cloutMap[user.bitcloutpubkey] = user._id;
@@ -21,15 +21,15 @@ const profileQuery = async (id: string) => {
           if (
             response["Transactions"][i]["TransactionType"] == "BASIC_TRANSFER"
           ) {
-            const output = response["Transactions"][i].Outputs;
+            let output = response["Transactions"][i].Outputs;
             if (
               Object.keys(cloutMap).includes(output[0].PublicKeyBase58Check)
             ) {
-              const tx_ = await Transaction.findOne({
+              let tx_ = await Transaction.findOne({
                 bitcloutpubkey: output[0].PublicKeyBase58Check,
               }).exec();
               if (tx_ && output[0].AmountNanos >= tx_.bitcloutnanos) {
-                const user = await User.findOne({
+                let user = await User.findOne({
                   username: tx_.username.toString(),
                 }).exec();
                 tx_.status = "completed";

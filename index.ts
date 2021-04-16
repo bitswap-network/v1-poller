@@ -5,10 +5,10 @@ const logger = require("./utils/logger");
 const cron = require("node-cron");
 const server = http.createServer(app);
 import profileQuery from "./utils/query";
-cron.schedule("*/10 * * * *", async () => {
+cron.schedule("*/10 * * * *", () => {
   console.log("---------------------");
   console.log("Running Cron Job");
-  await profileQuery("BC1YLjQtaLyForGFpdzmvzCCx1zbSCm58785cABn5zS8KVMeS4Z4aNK");
+  profileQuery("BC1YLjQtaLyForGFpdzmvzCCx1zbSCm58785cABn5zS8KVMeS4Z4aNK");
 });
 
 server.listen(config.PORT, () => {
