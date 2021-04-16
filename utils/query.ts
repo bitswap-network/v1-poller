@@ -28,11 +28,11 @@ const profileQuery = async (id: string) => {
               const tx_ = await Transaction.findOne({
                 bitcloutpubkey: output[0].PublicKeyBase58Check,
               }).exec();
-              if (tx_ && output[0].AmountNanos / 1e9 >= tx_.bitcloutvalue) {
+              if (tx_ && output[0].AmountNanos >= tx_.bitcloutvalue) {
                 const user = await User.findOne({
                   username: tx_.username.toString(),
                 }).exec();
-                tx_.status = "payment_completed";
+                tx_.status = "completed";
                 if (user) {
                   user.bitswapbalance += output[0].AmountNanos / 1e9;
                   user.save();

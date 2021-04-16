@@ -17,9 +17,9 @@ export interface UserDoc extends Document {
   verified: string;
   ratings: [{ rating: number; rater: Schema.Types.ObjectId }];
   completedtransactions: number;
-  bitswapbalance: number;
   generateHash: (password: string) => boolean;
   validPassword: (password: string) => boolean;
+  bitswapbalance: number;
 }
 
 const userSchema = new Schema<UserDoc>({

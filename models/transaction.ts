@@ -5,7 +5,7 @@ export interface transactionDoc extends Document {
   transactiontype: String;
   status: String;
   bitcloutvalue: Number;
-  bitcloutid: String;
+  bitcloutpubkey: String;
   created: Date;
   completed: Date;
 }
