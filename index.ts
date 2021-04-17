@@ -1,5 +1,4 @@
-const app = require("./app");
-const http = require("http");
+import app from "./app";
 const config = require("./utils/config");
 const logger = require("./utils/logger");
 const cron = require("node-cron");
