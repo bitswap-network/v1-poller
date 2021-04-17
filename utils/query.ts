@@ -16,17 +16,19 @@ const profileQuery = async (id: string) => {
     .crawlTransactionInfo()
     .then(async (response) => {
       logger.info(response);
+      logger.info("cloutmap ", cloutMap);
       if (response["Transactions"]) {
         for (let i = 0; i < response["Transactions"].length; i++) {
           if (
             response["Transactions"][i]["TransactionType"] == "BASIC_TRANSFER"
           ) {
+            logger.info("found a basic transaction");
             let output = response["Transactions"][i].Outputs;
             if (
-              Object.keys(cloutMap).includes(output[0].PublicKeyBase58Check)
+              Object.keys(cloutMap).includes(output[1].PublicKeyBase58Check)
             ) {
               let tx_ = await Transaction.findOne({
-                bitcloutpubkey: output[0].PublicKeyBase58Check,
+                bitcloutpubkey: output[1].PublicKeyBase58Check,
               }).exec();
               if (tx_ && output[0].AmountNanos >= tx_.bitcloutnanos) {
                 let user = await User.findOne({
