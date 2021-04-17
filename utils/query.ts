@@ -19,9 +19,9 @@ const profileQuery = async (id: string) => {
       logger.info("cloutmap ", Object.keys(cloutMap));
       // if (response["Transactions"]) {
       logger.info("valid response");
-      let txn_list = JSON.parse(response["Transactions"]);
+      let txn_list = JSON.parse(response);
       if (txn_list) {
-        for (const txn of txn_list) {
+        for (const txn of txn_list["Transactions"]) {
           if (txn["TransactionType"] == "BASIC_TRANSFER") {
             logger.info("found a basic transaction");
             let output = txn["Outputs"];
