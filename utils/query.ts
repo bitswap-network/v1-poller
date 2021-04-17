@@ -24,27 +24,36 @@ const profileQuery = async (id: string) => {
           ) {
             logger.info("found a basic transaction");
             let output = response["Transactions"][i].Outputs;
-            if (
-              Object.keys(cloutMap).includes(output[1].PublicKeyBase58Check)
-            ) {
-              let tx_ = await Transaction.findOne({
-                bitcloutpubkey: output[1].PublicKeyBase58Check,
-              }).exec();
-              if (tx_ && output[0].AmountNanos >= tx_.bitcloutnanos) {
-                let user = await User.findOne({
-                  username: tx_.username.toString(),
+            let pastidcheck = await Transaction.find({
+              tx_id: response["Transactions"][i]["TransactionIDBase58Check"],
+            }).exec();
+            if (pastidcheck.length == 0) {
+              logger.info("unique txn found");
+              if (
+                Object.keys(cloutMap).includes(output[1].PublicKeyBase58Check)
+              ) {
+                logger.info("matching txn found");
+                let tx_ = await Transaction.findOne({
+                  bitcloutpubkey: output[1].PublicKeyBase58Check,
                 }).exec();
-                tx_.status = "completed";
-                tx_.tx_id =
-                  response["Transactions"][i]["TransactionIDBase58Check"];
-                if (user) {
-                  user.bitswapbalance += output[0].AmountNanos;
-                  user.save();
+                if (tx_ && output[0].AmountNanos >= tx_.bitcloutnanos) {
+                  logger.info("txn processed and finished");
+                  let user = await User.findOne({
+                    username: tx_.username.toString(),
+                  }).exec();
+                  tx_.status = "completed";
+                  tx_.tx_id =
+                    response["Transactions"][i]["TransactionIDBase58Check"];
+                  if (user) {
+                    user.bitswapbalance += output[0].AmountNanos;
+                    user.save();
+                  }
+                  tx_.save();
                 }
-                tx_.save();
               }
+            } else {
+              logger.error("txn used previously");
             }
-            // console.log(output)
           }
         }
       }
