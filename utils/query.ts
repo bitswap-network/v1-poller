@@ -16,19 +16,19 @@ const profileQuery = async (id: string) => {
     .crawlTransactionInfo()
     .then(async (response) => {
       logger.info(response);
-      logger.info("cloutmap ", cloutMap);
+      logger.info("cloutmap ", Object.keys(cloutMap));
       if (response["Transactions"]) {
-        for (let i = 0; i < response["Transactions"].length; i++) {
-          if (
-            response["Transactions"][i]["TransactionType"] == "BASIC_TRANSFER"
-          ) {
+        logger.info("valid response");
+        for (const txn of response["Transactions"]) {
+          if (txn["TransactionType"] == "BASIC_TRANSFER") {
             logger.info("found a basic transaction");
-            let output = response["Transactions"][i].Outputs;
+            let output = txn["Outputs"];
             let pastidcheck = await Transaction.find({
-              tx_id: response["Transactions"][i]["TransactionIDBase58Check"],
+              tx_id: txn["TransactionIDBase58Check"],
             }).exec();
             if (pastidcheck.length == 0) {
               logger.info("unique txn found");
+              logger.info();
               if (
                 Object.keys(cloutMap).includes(output[1].PublicKeyBase58Check)
               ) {
@@ -42,8 +42,7 @@ const profileQuery = async (id: string) => {
                     username: tx_.username.toString(),
                   }).exec();
                   tx_.status = "completed";
-                  tx_.tx_id =
-                    response["Transactions"][i]["TransactionIDBase58Check"];
+                  tx_.tx_id = txn["TransactionIDBase58Check"];
                   if (user) {
                     user.bitswapbalance += output[0].AmountNanos;
                     user.save();
