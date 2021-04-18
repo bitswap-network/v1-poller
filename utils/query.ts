@@ -52,8 +52,10 @@ const profileQuery = async (id: string) => {
                     tx_.completed = new Date();
                     user.bitswapbalance += output[0].AmountNanos;
                     await user.save();
+                    await tx_.save();
+                  } else {
+                    logger.error("user not found");
                   }
-                  await tx_.save();
                 } else {
                   logger.error(
                     "cannot find txn in database or invalid amounts"
