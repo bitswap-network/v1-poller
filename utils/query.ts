@@ -1,8 +1,9 @@
-import proxy from "./proxy";
+import Proxy from "./proxy";
 import User from "../models/user";
 import Transaction from "../models/transaction";
 const logger = require("./logger");
 const profileQuery = async (id: string) => {
+  let proxy = new Proxy();
   await proxy.initiateProfileQuery(300, id);
 
   let cloutMap = {};
@@ -45,14 +46,18 @@ const profileQuery = async (id: string) => {
                   let user = await User.findOne({
                     username: tx_.username.toString(),
                   }).exec();
-                  tx_.status = "completed";
-                  tx_.tx_id = txn["TransactionIDBase58Check"];
-                  tx_.completed = new Date();
                   if (user) {
+                    tx_.status = "completed";
+                    tx_.tx_id = txn["TransactionIDBase58Check"];
+                    tx_.completed = new Date();
                     user.bitswapbalance += output[0].AmountNanos;
                     await user.save();
                   }
                   await tx_.save();
+                } else {
+                  logger.error(
+                    "cannot find txn in database or invalid amounts"
+                  );
                 }
               }
             } else {
