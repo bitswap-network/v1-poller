@@ -10,5 +10,6 @@ cron.schedule("*/5 * * * *", async () => {
 });
 
 app.listen(config.PORT, () => {
+  process.setMaxListeners(Infinity);
   logger.info(`Server running on port ${config.PORT}`);
 });
