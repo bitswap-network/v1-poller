@@ -47,6 +47,7 @@ const profileQuery = async (id: string) => {
                   }).exec();
                   tx_.status = "completed";
                   tx_.tx_id = txn["TransactionIDBase58Check"];
+                  tx_.completed = new Date();
                   if (user) {
                     user.bitswapbalance += output[0].AmountNanos;
                     await user.save();
