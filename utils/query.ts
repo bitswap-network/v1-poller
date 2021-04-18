@@ -37,6 +37,8 @@ const profileQuery = async (id: string) => {
                 logger.info("matching txn found");
                 let tx_ = await Transaction.findOne({
                   bitcloutpubkey: output[1].PublicKeyBase58Check,
+                  status: "pending",
+                  transactiontype: "deposit",
                 }).exec();
                 if (tx_ && output[0].AmountNanos >= tx_.bitcloutnanos) {
                   logger.info("txn processed and finished");
