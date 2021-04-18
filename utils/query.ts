@@ -12,7 +12,7 @@ const profileQuery = async (id: string) => {
     });
   });
 
-  await proxy
+  proxy
     .crawlTransactionInfo()
     .then(async (response) => {
       logger.info(response);
@@ -47,9 +47,9 @@ const profileQuery = async (id: string) => {
                   tx_.tx_id = txn["TransactionIDBase58Check"];
                   if (user) {
                     user.bitswapbalance += output[0].AmountNanos;
-                    user.save();
+                    await user.save();
                   }
-                  tx_.save();
+                  await tx_.save();
                 }
               }
             } else {
@@ -66,5 +66,6 @@ const profileQuery = async (id: string) => {
       proxy.close();
       logger.error(error);
     });
+  // proxy.close();
 };
 export default profileQuery;
