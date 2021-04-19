@@ -16,7 +16,7 @@ const profileQuery = async (id: string) => {
   await proxy
     .crawlTransactionInfo()
     .then(async (response) => {
-      logger.info(response);
+      // logger.info(response);
       logger.info("cloutmap ", Object.keys(cloutMap));
       logger.info("valid response");
       let txn_list = JSON.parse(response);
