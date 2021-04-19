@@ -94,10 +94,10 @@ class Proxy {
   }
 
   async close() {
-    if (!this.browser) {
-      logger.info("closing browser");
-      await this.browser.close();
-    }
+    // if (!this.browser) {
+    logger.info("closing browser");
+    await this.browser.close();
+    // }
   }
 }
 
