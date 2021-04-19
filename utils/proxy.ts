@@ -35,6 +35,14 @@ class Proxy {
     await this.page.setRequestInterception(true);
     await this.page.setJavaScriptEnabled(true);
     await this.page.setDefaultNavigationTimeout(0);
+    await this.page.setViewport({
+      width: 1920 + Math.floor(Math.random() * 100),
+      height: 3000 + Math.floor(Math.random() * 100),
+      deviceScaleFactor: 1,
+      hasTouch: false,
+      isLandscape: false,
+      isMobile: false,
+    });
     this.page.on("request", (request: any) => {
       if (
         ["image", "stylesheet", "font", "script"].indexOf(
@@ -85,9 +93,10 @@ class Proxy {
     }
   }
 
-  close() {
+  async close() {
     if (!this.browser) {
-      this.browser.close();
+      logger.info("closing browser");
+      await this.browser.close();
     }
   }
 }

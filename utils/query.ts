@@ -70,7 +70,7 @@ const profileQuery = async (id: string) => {
       } else {
         logger.error("invalid response");
       }
-      proxy.close();
+      await proxy.close();
     })
     .catch((error) => {
       proxy.close();
