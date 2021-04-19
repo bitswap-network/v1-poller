@@ -13,7 +13,7 @@ const profileQuery = async (id: string) => {
     });
   });
 
-  proxy
+  await proxy
     .crawlTransactionInfo()
     .then(async (response) => {
       logger.info(response);
@@ -75,6 +75,6 @@ const profileQuery = async (id: string) => {
       proxy.close();
       logger.error(error);
     });
-  // proxy.close();
+  await proxy.close();
 };
 export default profileQuery;
