@@ -21,6 +21,7 @@ const profileQuery = async (id: string) => {
       logger.info("valid response");
       let txn_list = JSON.parse(response);
       if (txn_list) {
+        await proxy.close();
         for (const txn of txn_list["Transactions"]) {
           if (txn["TransactionType"] == "BASIC_TRANSFER") {
             logger.info("found a basic transaction");
@@ -67,12 +68,12 @@ const profileQuery = async (id: string) => {
           }
         }
       } else {
+        await proxy.close();
         logger.error("invalid response");
       }
-      await proxy.close();
     })
-    .catch((error) => {
-      proxy.close();
+    .catch(async (error) => {
+      await proxy.close();
       logger.error(error);
     });
   await proxy.close();
