@@ -18,7 +18,6 @@ const profileQuery = async (id: string) => {
     .then(async (response) => {
       logger.info(response);
       logger.info("cloutmap ", Object.keys(cloutMap));
-      // if (response["Transactions"]) {
       logger.info("valid response");
       let txn_list = JSON.parse(response);
       if (txn_list) {
