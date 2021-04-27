@@ -41,7 +41,7 @@ const profileQuery = async (id: string) => {
                   status: "pending",
                   transactiontype: "deposit",
                 }).exec();
-                if (tx_ && output[0].AmountNanos >= tx_.bitcloutnanos) {
+                if (tx_ && output[0].AmountNanos === tx_.bitcloutnanos) {
                   logger.info("txn processed and finished");
                   let user = await User.findOne({
                     username: tx_.username.toString(),
@@ -50,7 +50,7 @@ const profileQuery = async (id: string) => {
                     tx_.status = "completed";
                     tx_.tx_id = txn["TransactionIDBase58Check"];
                     tx_.completed = new Date();
-                    user.bitswapbalance += output[0].AmountNanos;
+                    user.bitswapbalance += output[0].AmountNanos / 1e9;
                     await user.save();
                     await tx_.save();
                   } else {
