@@ -6,7 +6,7 @@ import profileQuery from "./utils/query";
 cron.schedule("*/3 * * * *", async () => {
   console.log("---------------------");
   console.log("Running Poller Job");
-  profileQuery("BC1YLgDkS56PRvHnmeW14u8i7PRxGnb8DGvcJYNqeuyqHe7PtmBq68r");
+  profileQuery("BC1YLiYo25DLiUf9XfNPWD4EPcuZkUTFnRCeq9RjRum1gkaYJ2K4Vu1");
 });
 
 app.listen(config.PORT, () => {
