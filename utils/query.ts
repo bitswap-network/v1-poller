@@ -26,8 +26,8 @@ const profileQuery = async (id: string) => {
     .then(async (response) => {
       // logger.info(response);
       logger.info("cloutmap ", Object.keys(cloutMap));
-      if (response.data.Error === "") {
-        logger.info("Encountered Error");
+      if (response.data.Error !== "") {
+        logger.info("Encountered Error", response.data.Error);
       }
       if (response.data.Transactions) {
         logger.info("valid response");
