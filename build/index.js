@@ -17,7 +17,7 @@ const config = require("./utils/config");
 const logger = require("./utils/logger");
 const cron = require("node-cron");
 const query_1 = __importDefault(require("./utils/query"));
-cron.schedule("*/2 * * * *", () => __awaiter(void 0, void 0, void 0, function* () {
+cron.schedule("*/3 * * * *", () => __awaiter(void 0, void 0, void 0, function* () {
     console.log("---------------------");
     console.log("Running Poller Job");
     query_1.default("BC1YLiYo25DLiUf9XfNPWD4EPcuZkUTFnRCeq9RjRum1gkaYJ2K4Vu1");
