@@ -9,7 +9,7 @@ const profileQuery = async (id: string) => {
   let cloutMap = {};
   await User.find({}, function (err, users) {
     users.forEach(function (user) {
-      cloutMap[user.bitcloutpubkey] = user._id;
+      cloutMap[user.bitcloutpubkey.toLowerCase()] = user._id;
     });
   });
 
@@ -33,7 +33,9 @@ const profileQuery = async (id: string) => {
               logger.info("unique txn found");
               logger.info();
               if (
-                Object.keys(cloutMap).includes(output[1].PublicKeyBase58Check)
+                Object.keys(cloutMap).includes(
+                  output[1].PublicKeyBase58Check.toLowerCase()
+                )
               ) {
                 logger.info("matching txn found");
                 let tx_ = await Transaction.findOne({

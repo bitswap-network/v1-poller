@@ -8,7 +8,7 @@ export interface UserDoc extends Document {
   emailverified: boolean;
   emailverification: string;
   bitcloutpubkey: string;
-  ethereumaddress: string;
+  ethereumaddress: string[];
   password: string;
   passwordverification: string;
   created: Date;
@@ -17,12 +17,16 @@ export interface UserDoc extends Document {
   admin: boolean;
   verified: string;
   ratings: [{ rating: number; rater: Schema.Types.ObjectId }];
-  completedtransactions: number;
+  completedorders: number;
   generateHash: (password: string) => string;
   validPassword: (password: string) => boolean;
   bitswapbalance: number;
   transactions: [Schema.Types.ObjectId];
   buystate: boolean;
+  bitcloutverified: boolean;
+  profilepicture: string;
+  description: string;
+  bitcloutverification: string;
 }
 
 const userSchema = new Schema<UserDoc>({
@@ -32,7 +36,9 @@ const userSchema = new Schema<UserDoc>({
   emailverified: { type: Boolean, default: false },
   emailverification: { type: String },
   bitcloutpubkey: { type: String, unique: true },
-  ethereumaddress: { type: String, unique: true },
+  bitcloutbio: { type: String },
+  bitcloutpicture: { type: String },
+  ethereumaddress: [{ type: String, unique: true }],
   password: { type: String, required: true },
   passwordverification: { type: String },
   incomplete: { type: Boolean, required: true, default: true },
@@ -60,6 +66,10 @@ const userSchema = new Schema<UserDoc>({
   bitswapbalance: { type: Number, default: 0 },
   transactions: [{ type: Schema.Types.ObjectId, ref: "Transaction" }],
   buystate: { type: Boolean, default: false },
+  bitcloutverified: { type: Boolean, default: false },
+  profilepicture: { type: String },
+  description: { type: String },
+  bitcloutverification: { type: String },
 });
 
 userSchema.methods.generateHash = function (password: String) {
