@@ -14,84 +14,86 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const user_1 = __importDefault(require("../models/user"));
 const transaction_1 = __importDefault(require("../models/transaction"));
+const helper_1 = require("./helper");
 const axios_1 = __importDefault(require("axios"));
 const logger = require("./logger");
 const profileQuery = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    let cloutMap = {};
-    yield user_1.default.find({}, function (err, users) {
-        users.forEach(function (user) {
-            cloutMap[user.bitcloutpubkey.toLowerCase()] = user._id;
+    let pendingTransactions = []; //all pending transactions
+    let pastTxnIds = []; //past ids so we dont create duplicates
+    let transactions = yield transaction_1.default.find({
+        status: "pending",
+        transactiontype: "deposit",
+    }).exec();
+    let prevTransactions = yield transaction_1.default.find({
+        status: "completed",
+        transactiontype: "deposit",
+    }).exec();
+    prevTransactions.forEach((transaction) => pastTxnIds.push(transaction.tx_id));
+    transactions.forEach((transaction) => pendingTransactions.push(transaction));
+    try {
+        const response = yield axios_1.default.post("https://api.bitclout.com/api/v1/transaction-info", JSON.stringify({
+            PublicKeyBase58Check: id,
+        }), {
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: "__cfduid=d0e96960ab7b9233d869e566cddde2b311619467183; INGRESSCOOKIE=e663da5b29ea8969365c1794da20771c",
+            },
         });
-    });
-    axios_1.default
-        .post("https://api.bitclout.com/api/v1/transaction-info", JSON.stringify({
-        PublicKeyBase58Check: id,
-    }), {
-        headers: {
-            "Content-Type": "application/json",
-            Cookie: "__cfduid=d0e96960ab7b9233d869e566cddde2b311619467183; INGRESSCOOKIE=e663da5b29ea8969365c1794da20771c",
-        },
-    })
-        .then((response) => __awaiter(void 0, void 0, void 0, function* () {
-        // logger.info(response);
-        logger.info("cloutmap ", Object.keys(cloutMap));
-        if (response.data.Error !== "") {
-            logger.info("Encountered Error", response.data.Error);
-        }
-        if (response.data.Transactions) {
-            logger.info("valid response");
-            for (const txn of response.data.Transactions) {
-                if (txn["TransactionType"] == "BASIC_TRANSFER") {
-                    logger.info("found a basic transaction");
-                    let output = txn["Outputs"];
-                    let pastidcheck = yield transaction_1.default.find({
-                        tx_id: txn["TransactionIDBase58Check"],
-                    }).exec();
-                    if (pastidcheck.length == 0) {
-                        logger.info("unique txn found");
-                        logger.info();
-                        if (Object.keys(cloutMap).includes(output[1].PublicKeyBase58Check.toLowerCase())) {
-                            logger.info("matching txn found");
-                            let tx_ = yield transaction_1.default.findOne({
-                                bitcloutpubkey: output[1].PublicKeyBase58Check,
-                                status: "pending",
-                                transactiontype: "deposit",
+        if (response.data.Error === "") {
+            let i = 0;
+            response.data.Transactions.forEach((transaction) => __awaiter(void 0, void 0, void 0, function* () {
+                if (transaction.TransactionType === "BASIC_TRANSFER") {
+                    let outputs = transaction.Outputs;
+                    // console.log(outputs);
+                    if (!pastTxnIds.includes(transaction.TransactionIDBase58Check)) {
+                        let txnMatch = pendingTransactions.find((_) => {
+                            var _a;
+                            return (_.bitcloutpubkey.toLowerCase() ===
+                                ((_a = transaction === null || transaction === void 0 ? void 0 : transaction.Outputs[1]) === null || _a === void 0 ? void 0 : _a.PublicKeyBase58Check.toLowerCase()) &&
+                                helper_1.validAmount(outputs[0].AmountNanos, _.bitcloutnanos));
+                        });
+                        if (txnMatch) {
+                            console.log(txnMatch);
+                            i += 1;
+                            console.log(i);
+                            let user = yield user_1.default.findOne({
+                                username: txnMatch.username,
                             }).exec();
-                            if (tx_ && output[0].AmountNanos === tx_.bitcloutnanos) {
-                                logger.info("txn processed and finished");
-                                let user = yield user_1.default.findOne({
-                                    username: tx_.username.toString(),
-                                }).exec();
-                                if (user) {
-                                    tx_.status = "completed";
-                                    tx_.tx_id = txn["TransactionIDBase58Check"];
-                                    tx_.completed = new Date();
-                                    user.bitswapbalance += output[0].AmountNanos / 1e9;
-                                    yield user.save();
-                                    yield tx_.save();
-                                }
-                                else {
-                                    logger.error("user not found");
-                                }
-                            }
-                            else {
-                                logger.error("cannot find txn in database or invalid amounts");
+                            let tx = yield transaction_1.default.findById(txnMatch._id).exec();
+                            // console.log(tx, user);
+                            if (tx && user) {
+                                tx.status = "completed";
+                                tx.tx_id = transaction.TransactionIDBase58Check;
+                                tx.completed = new Date();
+                                user.bitswapbalance += txnMatch.bitcloutnanos / 1e9;
+                                user.save((err) => {
+                                    if (err) {
+                                        logger.error(err);
+                                    }
+                                    else {
+                                        tx === null || tx === void 0 ? void 0 : tx.save((err) => {
+                                            if (err) {
+                                                logger.error(err);
+                                            }
+                                            else {
+                                                logger.info("Completed deposit for user: ", user === null || user === void 0 ? void 0 : user.username, "| Amount: ", ((tx === null || tx === void 0 ? void 0 : tx.bitcloutnanos) / 1e9).toString());
+                                            }
+                                        });
+                                    }
+                                });
                             }
                         }
                     }
-                    else {
-                        logger.error("txn used previously");
-                    }
                 }
-            }
+            }));
         }
         else {
-            logger.error("invalid response");
+            logger.error(response.data.Error);
         }
-    }))
-        .catch((error) => {
-        logger.error(error.data);
-    });
+    }
+    catch (e) {
+        logger.error(e);
+    }
 });
 exports.default = profileQuery;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicXVlcnkuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi91dGlscy9xdWVyeS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7OztBQUFBLDBEQUFrQztBQUNsQyx3RUFBZ0Q7QUFDaEQsa0RBQTBCO0FBQzFCLE1BQU0sTUFBTSxHQUFHLE9BQU8sQ0FBQyxVQUFVLENBQUMsQ0FBQztBQUNuQyxNQUFNLFlBQVksR0FBRyxDQUFPLEVBQVUsRUFBRSxFQUFFO0lBQ3hDLElBQUksUUFBUSxHQUFHLEVBQUUsQ0FBQztJQUNsQixNQUFNLGNBQUksQ0FBQyxJQUFJLENBQUMsRUFBRSxFQUFFLFVBQVUsR0FBRyxFQUFFLEtBQUs7UUFDdEMsS0FBSyxDQUFDLE9BQU8sQ0FBQyxVQUFVLElBQUk7WUFDMUIsUUFBUSxDQUFDLElBQUksQ0FBQyxjQUFjLENBQUMsV0FBVyxFQUFFLENBQUMsR0FBRyxJQUFJLENBQUMsR0FBRyxDQUFDO1FBQ3pELENBQUMsQ0FBQyxDQUFDO0lBQ0wsQ0FBQyxDQUFDLENBQUM7SUFDSCxlQUFLO1NBQ0YsSUFBSSxDQUNILGtEQUFrRCxFQUNsRCxJQUFJLENBQUMsU0FBUyxDQUFDO1FBQ2Isb0JBQW9CLEVBQUUsRUFBRTtLQUN6QixDQUFDLEVBQ0Y7UUFDRSxPQUFPLEVBQUU7WUFDUCxjQUFjLEVBQUUsa0JBQWtCO1lBQ2xDLE1BQU0sRUFDSixzR0FBc0c7U0FDekc7S0FDRixDQUNGO1NBQ0EsSUFBSSxDQUFDLENBQU8sUUFBUSxFQUFFLEVBQUU7UUFDdkIseUJBQXlCO1FBQ3pCLE1BQU0sQ0FBQyxJQUFJLENBQUMsV0FBVyxFQUFFLE1BQU0sQ0FBQyxJQUFJLENBQUMsUUFBUSxDQUFDLENBQUMsQ0FBQztRQUNoRCxJQUFJLFFBQVEsQ0FBQyxJQUFJLENBQUMsS0FBSyxLQUFLLEVBQUUsRUFBRTtZQUM5QixNQUFNLENBQUMsSUFBSSxDQUFDLG1CQUFtQixFQUFFLFFBQVEsQ0FBQyxJQUFJLENBQUMsS0FBSyxD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
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicXVlcnkuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi91dGlscy9xdWVyeS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7OztBQUFBLDBEQUFrQztBQUVsQyx3RUFBZ0Q7QUFDaEQscUNBQXVDO0FBQ3ZDLGtEQUEwQjtBQUMxQixNQUFNLE1BQU0sR0FBRyxPQUFPLENBQUMsVUFBVSxDQUFDLENBQUM7QUFFbkMsTUFBTSxZQUFZLEdBQUcsQ0FBTyxFQUFVLEVBQUUsRUFBRTtJQUN4QyxJQUFJLG1CQUFtQixHQUFxQixFQUFFLENBQUMsQ0FBQywwQkFBMEI7SUFDMUUsSUFBSSxVQUFVLEdBQWEsRUFBRSxDQUFDLENBQUMsdUNBQXVDO0lBRXRFLElBQUksWUFBWSxHQUFHLE1BQU0scUJBQVcsQ0FBQyxJQUFJLENBQUM7UUFDeEMsTUFBTSxFQUFFLFNBQVM7UUFDakIsZUFBZSxFQUFFLFNBQVM7S0FDM0IsQ0FBQyxDQUFDLElBQUksRUFBRSxDQUFDO0lBRVYsSUFBSSxnQkFBZ0IsR0FBRyxNQUFNLHFCQUFXLENBQUMsSUFBSSxDQUFDO1FBQzVDLE1BQU0sRUFBRSxXQUFXO1FBQ25CLGVBQWUsRUFBRSxTQUFTO0tBQzNCLENBQUMsQ0FBQyxJQUFJLEVBQUUsQ0FBQztJQUVWLGdCQUFnQixDQUFDLE9BQU8sQ0FBQyxDQUFDLFdBQVcsRUFBRSxFQUFFLENBQUMsVUFBVSxDQUFDLElBQUksQ0FBQyxXQUFXLENBQUMsS0FBSyxDQUFDLENBQUMsQ0FBQztJQUU5RSxZQUFZLENBQUMsT0FBTyxDQUFDLENBQUMsV0FBVyxFQUFFLEVBQUUsQ0FBQyxtQkFBbUIsQ0FBQyxJQUFJLENBQUMsV0FBVyxDQUFDLENBQUMsQ0FBQztJQUM3RSxJQUFJO1FBQ0YsTUFBTSxRQUFRLEdBQUcsTUFBTSxlQUFLLENBQUMsSUFBSSxDQUMvQixrREFBa0QsRUFDbEQsSUFBSSxDQUFDLFNBQVMsQ0FBQztZQUNiLG9CQUFvQixFQUFFLEVBQUU7U0FDekIsQ0FBQyxFQUNGO1lBQ0UsT0FBTyxFQUFFO2dCQUNQLGNBQWMsRUFBRSxrQkFBa0I7Z0JBQ2xDLE1BQU0sRUFDSixzR0FBc0c7YUFDekc7U0FDRixDQUNGLENBQUM7UUFDRixJQUFJLFFBQVEsQ0FBQyxJQUFJLENBQUMsS0FBSyxLQUFLLEVBQUUsRUFBRTtZQUM5QixJQUFJLENBQUMsR0FBRyxDQUFDLENBQUM7WUFDVixRQUFRLENBQUMsSUFBSSxDQUFDLFlBQVksQ0FBQyxPQUFPLENBQUMsQ0FBTyxXQUFXLEVBQUUsRUFBRTtnQkFDdkQsSUFBSSxXQUFXLENBQUMsZUFBZSxLQUFLLGdCQUFnQixFQUFFO29CQUNwRCxJQUFJLE9BQU8sR0FBRyxXQUFXLENBQUMsT0FBTyxDQUFDO29CQUNsQyx3QkFBd0I7b0JBQ3hCLElBQUksQ0FBQyxVQUFVLENBQUMsUUFBUSxDQUFDLFdBQVcsQ0FBQyx3QkFBd0IsQ0FBQyxFQUFFO3dCQUM5RCxJQUFJLFFBQVEsR0FBRyxtQkFBbUIsQ0FBQyxJQUFJLENBQUMsQ0FBQyxDQUFDLEVBQUUsRUFBRTs7NEJBQzVDLE9BQU8sQ0FDTCxDQUFDLENBQUMsY0FBYyxDQUFDLFdBQVcsRUFBRTtpQ0FDNUIsTUFBQSxXQUFXLGFBQVgsV0FBVyx1QkFBWCxXQUFXLENBQUUsT0FBTyxDQUFDLENBQUMsQ0FBQywwQ0FBRSxvQkFBb0IsQ0FBQyxXQUFXLEVBQUUsQ0FBQTtnQ0FDN0Qsb0JBQVcsQ0FBQyxPQUFPLENBQUMsQ0FBQyxDQUFDLENBQUMsV0FBVyxFQUFFLENBQUMsQ0FBQyxhQUFhLENBQUMsQ0FDckQsQ0FBQzt3QkFDSixDQUFDLENBQUMsQ0FBQzt3QkFFSCxJQUFJLFFBQVEsRUFBRTs0QkFDWixPQUFPLENBQUMsR0FBRyxDQUFDLFFBQVEsQ0FBQyxDQUFDOzRCQUN0QixDQUFDLElBQUksQ0FBQyxDQUFDOzRCQUNQLE9BQU8sQ0FBQyxHQUFHLENBQUMsQ0FBQyxDQUFDLENBQUM7NEJBQ2YsSUFBSSxJQUFJLEdBQUcsTUFBTSxjQUFJLENBQUMsT0FBTyxDQUFDO2dDQUM1QixRQUFRLEVBQUUsUUFBUSxDQUFDLFFBQVE7NkJBQzVCLENBQUMsQ0FBQyxJQUFJLEVBQUUsQ0FBQzs0QkFDVixJQUFJLEVBQUUsR0FBRyxNQUFNLHFCQUFXLENBQUMsUUFBUSxDQUFDLFFBQVEsQ0FBQyxHQUFHLENBQUMsQ0FBQyxJQUFJLEVBQUUsQ0FBQzs0QkFDekQseUJBQXlCOzRCQUN6QixJQUFJLEVBQUUsSUFBSSxJQUFJLEVBQUU7Z0NBQ2QsRUFBRSxDQUFDLE1BQU0sR0FBRyxXQUFXLENBQUM7Z0NBQ3hCLEVBQUUsQ0FBQyxLQUFLLEdBQUcsV0FBVyxDQUFDLHdCQUF3QixDQUFDO2dDQUNoRCxFQUFFLENBQUMsU0FBUyxHQUFHLElBQUksSUFBSSxFQUFFLENBQUM7Z0NBQzFCLElBQUksQ0FBQyxjQUFjLElBQUksUUFBUSxDQUFDLGFBQWEsR0FBRyxHQUFHLENBQUM7Z0NBQ3BELElBQUksQ0FBQyxJQUFJLENBQUMsQ0FBQyxHQUFRLEVBQUUsRUFBRTtvQ0FDckIsSUFBSSxHQUFHLEVBQUU7d0NBQ1AsTUFBTSxDQUFDLEtBQUssQ0FBQyxHQUFHLENBQUMsQ0FBQztxQ0FDbkI7eUNBQU07d0NBQ0wsRUFBRSxhQUFGLEVBQUUsdUJBQUYsRUFBRSxDQUFFLElBQUksQ0FBQyxDQUFDLEdBQVEsRUFBRSxFQUFFOzRDQUNwQixJQUFJLEdBQUcsRUFBRTtnREFDUCxNQUFNLENBQUMsS0FBSyxDQUFDLEdBQUcsQ0FBQyxDQUFDOzZDQUNuQjtpREFBTTtnREFDTCxNQUFNLENBQUMsSUFBSSxDQUNULDhCQUE4QixFQUM5QixJQUFJLGFBQUosSUFBSSx1QkFBSixJQUFJLENBQUUsUUFBUSxFQUNkLFlBQVksRUFDWixDQUFDLENBQUEsRUFBRSxhQUFGLEVBQUUsdUJBQUYsRUFBRSxDQUFFLGFBQWMsSUFBRyxHQUFHLENBQUMsQ0FBQyxRQUFRLEVBQUUsQ0FDdEMsQ0FBQzs2Q0FDSDt3Q0FDSCxDQUFDLENBQUMsQ0FBQztxQ0FDSjtnQ0FDSCxDQUFDLENBQUMsQ0FBQzs2QkFDSjt5QkFDRjtxQkFDRjtpQkFDRjtZQUNILENBQUMsQ0FBQSxDQUFDLENBQUM7U0FDSjthQUFNO1lBQ0wsTUFBTSxDQUFDLEtBQUssQ0FBQyxRQUFRLENBQUMsSUFBSSxDQUFDLEtBQUssQ0FBQyxDQUFDO1NBQ25DO0tBQ0Y7SUFBQyxPQUFPLENBQUMsRUFBRTtRQUNWLE1BQU0sQ0FBQyxLQUFLLENBQUMsQ0FBQyxDQUFDLENBQUM7S0FDakI7QUFDSCxDQUFDLENBQUEsQ0FBQztBQUNGLGtCQUFlLFlBQVksQ0FBQyJ9
