@@ -43,16 +43,20 @@ const profileQuery = async (id: string) => {
           let outputs = transaction.Outputs;
           // console.log(outputs);
           if (!pastTxnIds.includes(transaction.TransactionIDBase58Check)) {
+            let inputNanos;
             let txnMatch = pendingTransactions.find((_) => {
+              let transactorkey = transaction?.Outputs[1]
+                ? transaction?.Outputs[1]?.PublicKeyBase58Check.toLowerCase()
+                : transaction.TransactionMetadata.TransactorPublicKeyBase58Check.toLowerCase();
+              inputNanos = outputs[0].AmountNanos;
               return (
-                _.bitcloutpubkey.toLowerCase() ===
-                  transaction?.Outputs[1]?.PublicKeyBase58Check.toLowerCase() &&
-                validAmount(outputs[0].AmountNanos, _.bitcloutnanos)
+                _.bitcloutpubkey.toLowerCase() === transactorkey &&
+                validAmount(inputNanos, _.bitcloutnanos)
               );
             });
 
             if (txnMatch) {
-              console.log(txnMatch);
+              console.log(txnMatch, inputNanos);
               i += 1;
               console.log(i);
               let user = await User.findOne({
@@ -64,7 +68,7 @@ const profileQuery = async (id: string) => {
                 tx.status = "completed";
                 tx.tx_id = transaction.TransactionIDBase58Check;
                 tx.completed = new Date();
-                user.bitswapbalance += txnMatch.bitcloutnanos / 1e9;
+                user.bitswapbalance += inputNanos / 1e9;
                 user.save((err: any) => {
                   if (err) {
                     logger.error(err);
