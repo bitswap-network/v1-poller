@@ -1,9 +1,49 @@
 import User from "../models/user";
 import { transactionDoc } from "../models/transaction";
 import Transaction from "../models/transaction";
+import Listing from "../models/listing";
+import Pool from "../models/pool";
 import { validAmount } from "./helper";
 import axios from "axios";
 const logger = require("./logger");
+
+const inactiveBuyCheck = async () => {
+  const listings = await Listing.find({
+    ongoing: true,
+    "escrow.balance": 0,
+    "escrow.full": false,
+  }).exec();
+  if (listings) {
+    listings.forEach(async (listing) => {
+      let now = new Date();
+      let buy_start = new Date(listing.buy_time!);
+      let elapsed = now.getTime() - buy_start.getTime();
+      if (elapsed > 1000 * 60 * 60 * 8) {
+        const buyer = await User.findById(listing.buyer).exec();
+        const pool = await Pool.findById(listing.pool).exec();
+
+        listing.ongoing = false;
+        listing.buyer = null;
+        listing.buy_time = null;
+        listing.pool = null;
+        pool!.active = false;
+        pool!.listing = null;
+        buyer!.buystate = false;
+        try {
+          await User.findOneAndUpdate(
+            { username: buyer!.username },
+            { $pull: { buys: listing._id } }
+          ).exec();
+          await listing.save();
+          await buyer?.save();
+          await pool?.save();
+        } catch (e) {
+          console.log(e);
+        }
+      }
+    });
+  }
+};
 
 const profileQuery = async (id: string) => {
   let pendingTransactions: transactionDoc[] = []; //all pending transactions
@@ -99,4 +139,4 @@ const profileQuery = async (id: string) => {
     logger.error(e);
   }
 };
-export default profileQuery;
+export { profileQuery, inactiveBuyCheck };
