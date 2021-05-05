@@ -13,6 +13,7 @@ const inactiveBuyCheck = async () => {
     "escrow.balance": 0,
     "escrow.full": false,
   }).exec();
+
   if (listings) {
     listings.forEach(async (listing) => {
       let now = new Date();
@@ -21,7 +22,6 @@ const inactiveBuyCheck = async () => {
       if (elapsed > 1000 * 60 * 60 * 8) {
         const buyer = await User.findById(listing.buyer).exec();
         const pool = await Pool.findById(listing.pool).exec();
-
         listing.ongoing = false;
         listing.buyer = null;
         listing.buy_time = null;
@@ -76,6 +76,7 @@ const profileQuery = async (id: string) => {
         },
       }
     );
+
     if (response.data.Error === "") {
       let i = 0;
       response.data.Transactions.forEach(async (transaction) => {
