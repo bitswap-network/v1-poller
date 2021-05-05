@@ -18,7 +18,7 @@ const inactiveBuyCheck = async () => {
       let now = new Date();
       let buy_start = new Date(listing.buy_time!);
       let elapsed = now.getTime() - buy_start.getTime();
-      if (elapsed > 1000 * 60 * 60 * 2) {
+      if (elapsed > 1000 * 60 * 60 * 8) {
         const buyer = await User.findById(listing.buyer).exec();
         const pool = await Pool.findById(listing.pool).exec();
 
