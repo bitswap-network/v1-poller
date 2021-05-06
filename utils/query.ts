@@ -1,65 +1,30 @@
 import User from "../models/user";
 import { transactionDoc } from "../models/transaction";
 import Transaction from "../models/transaction";
-import Listing from "../models/listing";
-import Pool from "../models/pool";
+
 import { validAmount } from "./helper";
 import axios from "axios";
 const logger = require("./logger");
-
-const inactiveBuyCheck = async () => {
-  const listings = await Listing.find({
-    ongoing: true,
-    "escrow.balance": 0,
-    "escrow.full": false,
-  }).exec();
-
-  if (listings) {
-    listings.forEach(async (listing) => {
-      let now = new Date();
-      let buy_start = new Date(listing.buy_time!);
-      let elapsed = now.getTime() - buy_start.getTime();
-      if (elapsed > 1000 * 60 * 60 * 8) {
-        const buyer = await User.findById(listing.buyer).exec();
-        const pool = await Pool.findById(listing.pool).exec();
-        listing.ongoing = false;
-        listing.buyer = null;
-        listing.buy_time = null;
-        listing.pool = null;
-        pool!.active = false;
-        pool!.listing = null;
-        buyer!.buystate = false;
-        try {
-          await User.findOneAndUpdate(
-            { username: buyer!.username },
-            { $pull: { buys: listing._id } }
-          ).exec();
-          await listing.save();
-          await buyer?.save();
-          await pool?.save();
-        } catch (e) {
-          console.log(e);
-        }
-      }
-    });
-  }
-};
 
 const profileQuery = async (id: string) => {
   let pendingTransactions: transactionDoc[] = []; //all pending transactions
   let pastTxnIds: string[] = []; //past ids so we dont create duplicates
 
   let transactions = await Transaction.find({
-    status: "pending",
+    complete: false,
     transactiontype: "deposit",
-  }).exec();
+  })
+    .populate("user")
+    .exec();
 
   let prevTransactions = await Transaction.find({
-    status: "completed",
-    transactiontype: "deposit",
+    completed: true,
+    transactionType: "deposit",
   }).exec();
 
-  prevTransactions.forEach((transaction) => pastTxnIds.push(transaction.tx_id));
+  prevTransactions.forEach((transaction) =>
+    pastTxnIds.push(transaction.txnHash!)
+  );
 
   transactions.forEach((transaction) => pendingTransactions.push(transaction));
   try {
@@ -82,34 +47,32 @@ const profileQuery = async (id: string) => {
       response.data.Transactions.forEach(async (transaction) => {
         if (transaction.TransactionType === "BASIC_TRANSFER") {
           let outputs = transaction.Outputs;
-          // console.log(outputs);
+
           if (!pastTxnIds.includes(transaction.TransactionIDBase58Check)) {
             let inputNanos;
+
             let txnMatch = pendingTransactions.find((_) => {
               let transactorkey = transaction?.Outputs[1]
                 ? transaction?.Outputs[1]?.PublicKeyBase58Check.toLowerCase()
                 : transaction.TransactionMetadata.TransactorPublicKeyBase58Check.toLowerCase();
               inputNanos = outputs[0].AmountNanos;
               return (
-                _.bitcloutpubkey.toLowerCase() === transactorkey &&
-                validAmount(inputNanos, _.bitcloutnanos)
+                _.user.bitclout.publicKey.toLowerCase() === transactorkey &&
+                validAmount(inputNanos, _.value)
               );
             });
-
             if (txnMatch) {
               console.log(txnMatch, inputNanos);
               i += 1;
               console.log(i);
-              let user = await User.findOne({
-                username: txnMatch.username,
-              }).exec();
+              let user = await User.findById(transaction.user).exec();
               let tx = await Transaction.findById(txnMatch._id).exec();
               // console.log(tx, user);
               if (tx && user) {
-                tx.status = "completed";
-                tx.tx_id = transaction.TransactionIDBase58Check;
-                tx.completed = new Date();
-                user.bitswapbalance += inputNanos / 1e9;
+                tx.completed = true;
+                tx.txnHash = transaction.TransactionIDBase58Check;
+                tx.completionDate = new Date();
+                user.balance.bitclout += inputNanos / 1e9;
                 user.save((err: any) => {
                   if (err) {
                     logger.error(err);
@@ -122,7 +85,7 @@ const profileQuery = async (id: string) => {
                           "Completed deposit for user: ",
                           user?.username,
                           "| Amount: ",
-                          (tx?.bitcloutnanos! / 1e9).toString()
+                          (tx?.value! / 1e9).toString()
                         );
                       }
                     });
@@ -140,4 +103,4 @@ const profileQuery = async (id: string) => {
     logger.error(e);
   }
 };
-export { profileQuery, inactiveBuyCheck };
+export { profileQuery };

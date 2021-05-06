@@ -1,29 +1,31 @@
 import { model, Schema, Document } from "mongoose";
-
+import User, { UserDoc } from "./user";
 export interface transactionDoc extends Document {
-  username: string;
-  transactiontype: string;
-  status: string;
-  bitcloutnanos: number;
-  bitcloutpubkey: string;
+  user: UserDoc;
+  transactionType: string;
+  assetType: string;
+  value: number;
   created: Date;
-  completed: Date;
-  tx_id: string;
+  completed: boolean;
+  completionDate: Date | undefined;
+  gasDeducted: number | undefined;
+  txnHash: string | undefined;
 }
 
 const transactionSchema = new Schema<transactionDoc>({
-  username: { type: String, required: true },
-  bitcloutpubkey: { type: String },
-  transactiontype: {
+  user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  transactionType: {
     type: String,
     required: true,
     enum: ["withdraw", "deposit"],
   },
-  status: { type: String, required: true, enum: ["completed", "pending"] },
-  bitcloutnanos: { type: Number, required: true },
+  assetType: { type: String, required: true, enum: ["ETH", "BCLT"] },
+  value: { type: Number, required: true },
   created: { type: Date, default: Date.now },
-  completed: { type: Date },
-  tx_id: { type: String },
+  completed: { type: Boolean, required: true, default: false },
+  completionDate: { type: Date },
+  gasDeducted: { type: Number },
+  txnHash: { type: String },
 });
 
 const Transaction = model<transactionDoc>("Transaction", transactionSchema);
