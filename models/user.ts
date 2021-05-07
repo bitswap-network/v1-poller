@@ -1,4 +1,5 @@
 import { model, Schema, Document } from "mongoose";
+import {transactionDoc} from "./transaction"
 const bcrypt = require("bcrypt");
 
 export interface UserDoc extends Document {
@@ -11,6 +12,7 @@ export interface UserDoc extends Document {
     bitclout: number;
     ether: number;
   };
+  onGoingDeposit:transactionDoc|null;
   transactions: Schema.Types.ObjectId[];
   verification: {
     email: boolean;
@@ -35,8 +37,9 @@ const userSchema = new Schema<UserDoc>({
   password: { type: String, required: true },
   balance: {
     bitclout: { type: Number, default: 0, required: true },
-    ether: { type: Number, default: 0, required: true },
+    ether: { type: Number, default: 0, required: true }
   },
+  onGoingDeposit: { type: Schema.Types.ObjectId, ref: "Transaction", default:null },
   transactions: [{ type: Schema.Types.ObjectId, ref: "Transaction" }],
   verification: {
     email: { type: Boolean, default: false },
@@ -45,21 +48,21 @@ const userSchema = new Schema<UserDoc>({
     status: {
       type: String,
       default: "unverified",
-      enum: ["unverified", "pending", "verified"],
+      enum: ["unverified", "pending", "verified"]
     },
-    bitcloutString: { type: String },
+    bitcloutString: { type: String }
   },
   bitclout: {
     publicKey: { type: String, unique: true },
     bio: { type: String },
     verified: { type: Boolean, default: false },
-    profilePicture: { type: String },
+    profilePicture: { type: String }
   },
   created: {
     type: Date,
-    default: Date.now,
+    default: Date.now
   },
-  admin: { type: Boolean, default: false },
+  admin: { type: Boolean, default: false }
 });
 
 userSchema.methods.generateHash = function (password: String) {
