@@ -1,8 +1,7 @@
 import User from "../models/user";
 import { transactionDoc } from "../models/transaction";
 import Transaction from "../models/transaction";
-
-import { validAmount } from "./helper";
+import { validAmount } from "../utils/helper";
 import axios from "axios";
 const logger = require("./logger");
 
