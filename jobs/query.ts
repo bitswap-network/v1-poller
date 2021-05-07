@@ -61,6 +61,7 @@ export const profileQuery = async (id: string) => {
                 tx.txnHash = transaction.TransactionIDBase58Check;
                 tx.completionDate = new Date();
                 user.balance.bitclout += inputNanos! / 1e9;
+                user.onGoingDeposit = null;
                 user.save((err: any) => {
                   if (err) {
                     logger.error(err);

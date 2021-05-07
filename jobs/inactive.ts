@@ -13,14 +13,16 @@ export const inactivePoolCheck = async () => {
       pool.activeStart = null;
       pool.user = null;
       await pool.save()
-      let user = await User.findById(pool.user!).exec()
-      let transaction = await Transaction.findOne({user:user?._id,completed:false,transactionType:"deposit",assetType:"ETH", status:"pending"}).exec();
-      if(transaction){
-        transaction.completed = true;
-        transaction.completionDate = new Date()
-        transaction.state = "failed";
-        transaction.error = "Deposit Timed Out"
-        await transaction.save()
+      let user = await User.findById(pool.user!).populate("onGoingDeposit").exec()
+      if(user?.onGoingDeposit){
+        let transaction = await Transaction.findById(user.onGoingDeposit._id).exec();
+        transaction!.completed = true;
+        transaction!.completionDate = new Date()
+        transaction!.state = "failed";
+        transaction!.error = "Deposit Timed Out"
+        user.onGoingDeposit = null;
+        await transaction!.save()
+        await user.save()
       }
     }
 
