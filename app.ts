@@ -20,11 +20,10 @@ mongoose
   .catch((error) => {
     logger.error("Error connecting to MongoDB:", error.message);
   });
-
+app.use(middleware.requestLogger);
 app.use(cors());
 app.use(helmet()); //security
 app.use(express.json());
-app.use(middleware.requestLogger);
 app.use(middleware.errorHandler);
 
 // API Routes Here
