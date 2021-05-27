@@ -9,8 +9,8 @@ export const inactivePoolCheck = async () => {
     if (pool.activeStart && pool.user) {
       const timeDiff = timeNow - pool.activeStart;
       const user = await User.findById(pool.user).exec();
-      //30 minutes
-      if (timeDiff > 1000 * 60 * 30) {
+      //60 minutes
+      if (timeDiff > 1000 * 60 * 60) {
         pool.active = false;
         pool.activeStart = null;
         pool.user = null;
